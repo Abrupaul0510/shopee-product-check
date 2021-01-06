@@ -1,3 +1,6 @@
+
+
+
 require ('dotenv').config()
 
 const { Client, DiscordAPIError,Attachment } = require('discord.js');
@@ -8,7 +11,7 @@ const client = new Client();
 const PREFIX = "!";
 
 client.on('ready', ()=>{
-    console.log('Successully connected to Discord! -paul');
+    console.log('Successully Paul');
     console.log("Servers Connected:")
     client.guilds.cache.forEach((guild) => {
         console.log(" - " + guild.name)
@@ -125,8 +128,16 @@ client.on('message' , (message)=>{
  
             })
 
+        }else if(CMD_NAME === 'latest'){
+           const limit = args.join(' ');
+           getLatest(limit).then(data => {
+               console.log(data)
+
+            })
+            
         }
-        }else{
+        }
+        else{
             message.channel.send('Invalid Command Please use "!help" to see the availble commands')
         }
     
@@ -135,7 +146,7 @@ client.on('message' , (message)=>{
 
 });
 
-client.login(process.env.token);
+client.login(process.env.DISCORD_TOKEN);
 
 
 
@@ -180,12 +191,279 @@ function getName(product_name){
 
 /// FUNCTION FOR 'get' Command
 
+async function  getLatest(limit){
+
+    const items = await getLatestItems(limit)
+
+    const uniqueitems = getUniqueListBy(items, 'name')
+
+    const photos = await getPhotos(uniqueitems)
+
+    return photos
+}
+
+//////////////////////////////////////////
+async function getPhotos(uniqueitems){
+    var arrdata = []
+    for(var p = 0; p < uniqueitems.length; p++){
+        var obj2 = {}
+        const searchitems =  uniqueitems[p]['name']
+        const photourl = await getPhotoUrl(searchitems)
+        const availables = await getAllAvailable(searchitems)
+
+        obj2['pname'] = searchitems
+        obj2['photourl'] = photourl
+        obj2['availables'] = availables
+        arrdata.push(obj2)
+
+    }
+
+    return arrdata
+
+}
+
+
+//////////////////////////////////////////
+async function getAllAvailable(searchitems){
+
+    const response = await fetch("https://shopee.ph/api/v2/search_items/?by=relevancy&categoryids=5011&entry_point=ShopBySearch&keyword="+searchitems+"&limit=50&match_id=23393629&newest=0&order=desc&page_type=shop&skip_autocorrect=1&version=2", {
+        "credentials": "include",
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0",
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.5",
+            "X-Shopee-Language": "en",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-API-SOURCE": "pc",
+            "If-None-Match-": "55b03-d6d1ee727f47983d2c8888983bedb051",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache"
+        },
+        "referrer": "https://shopee.ph/search?facet=5011&keyword=a20&noCorrection=true&page=0&shop=23393629",
+        "method": "GET",
+        "mode": "cors"
+    });
+
+    const data = await response.json()
+
+    
+
+    const items = data.items
+
+    var arrmodels = []
+    for (var j = 0; j < items.length; j++){
+
+    const itemid = items[j]['itemid']
+    
+    // console.log(itemid)
+    const availables = await getLatestModel(itemid)  
+    
+    arrmodels.push(availables)
+
+    }
+
+return arrmodels
+
+
+}
+
+//////////////////////////////////////////
+
+async function getLatestModel(itemid){
+
+
+    const response = await fetch("https://shopee.ph/api/v2/item/get?itemid="+itemid+"&shopid=23393629", {
+        "credentials": "include",
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0",
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.5",
+            "X-Shopee-Language": "en",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-API-SOURCE": "pc",
+            "If-None-Match-": "55b03-dab934e46a14456adba1514f8f126f2f",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache"
+        },
+        "referrer": "https://shopee.ph/Hello-Kitty-Candy-Case-iPhone-6-6s-7-8-Plus-XR-X-Xs-Max-11-Pro-Max-i.23393629.7072388761",
+        "method": "GET",
+        "mode": "cors"
+
+    });
+
+    const data = await response.json()
+
+    const models = data.item.models
+
+    const itemids = data.item.itemid
+
+    const brandname2 = await getBrandName(itemids); 
+    var names = []
+    var colors = []
+    
+    for (var n=0; n< models.length; n++) {
+        if (models[n]['normal_stock'] > 0){
+        
+              var splitthis = models[n]['name'];
+              var splitthis2 = splitthis.split(",");
+            
+                    names.push(splitthis2[1]);
+                    colors.push(splitthis2[0]);
+
+        }   
+    }
+    var availables = Array.from(new Set(names));
+    var availablecolors = Array.from(new Set(colors));
+    var av = availables.join(',');
+    var av2 = availablecolors.join(',');
+    var final = brandname2 + " - "+av+" - "+av2;
+    
+
+    return final
+}
+
+//////////////////////////////////////////
+
+async function getPhotoUrl(searchitems){
+
+    const response = await fetch("https://shopee.ph/api/v2/search_items/?by=relevancy&categoryids=5011&entry_point=ShopBySearch&keyword="+searchitems+"&limit=50&match_id=23393629&newest=0&order=desc&page_type=shop&skip_autocorrect=1&version=2", {
+        "credentials": "include",
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0",
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.5",
+            "X-Shopee-Language": "en",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-API-SOURCE": "pc",
+            "If-None-Match-": "55b03-d6d1ee727f47983d2c8888983bedb051",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache"
+        },
+        "referrer": "https://shopee.ph/search?facet=5011&keyword=a20&noCorrection=true&page=0&shop=23393629",
+        "method": "GET",
+        "mode": "cors"
+    });
+
+    const data = await response.json()
+
+    const item = data.items
+
+    const itemid = item[0].itemid
+
+    const photos = await getPhotoImages(itemid)
+
+
+    
+
+    return photos
+
+
+}
+
+/////////////////////////////////////////
+
+async function getPhotoImages(itemid){
+
+    const response = await fetch("https://shopee.ph/api/v2/item/get?itemid="+itemid+"&shopid=23393629", {
+        "credentials": "include",
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0",
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.5",
+            "X-Shopee-Language": "en",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-API-SOURCE": "pc",
+            "If-None-Match-": "55b03-d6d1ee727f47983d2c8888983bedb051",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache"
+        },
+        "referrer": "https://shopee.ph/search?facet=5011&keyword=a20&noCorrection=true&page=0&shop=23393629",
+        "method": "GET",
+        "mode": "cors"
+    });
+
+    const data = await response.json()
+
+    const dataitem = data.item
+
+    const images = dataitem.images
+
+
+    return images
+
+}
+
+
+
+
+/////////////////////////////////////////
+
+async function getModels2(itemid){
+
+
+
+}
+
+/////////////////////////////////////////
+
+
+function getUniqueListBy(arr, key) {
+
+    return [...new Map(arr.map(item => [item[key], item])).values()]
+}
+
+
+/////////////////////////////////////////
+
+async function getLatestItems(limit){
+    const response = await fetch("https://shopee.ph/api/v2/search_items/?by=ctime&categoryids=5011&limit="+limit+"&match_id=23393629&newest=0&order=desc&page_type=shop&version=2", {
+        "credentials": "include",
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0",
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.5",
+            "X-Shopee-Language": "en",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-API-SOURCE": "pc",
+            "If-None-Match-": "55b03-50315239e3106933f5b6222c5a29d0c9",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache"
+           
+        },
+        "referrer": "https://shopee.ph/shop/23393629/search?facet=5011&page=4&sortBy=ctime",
+        "method": "GET",
+        "mode": "cors"
+    });
+
+    const data = await response.json()
+    const items = data.items
+    var itemsdata = []
+
+    for (var i = 0; i < items.length; i++){
+        var obj = {}
+
+        const name = items[i]['name'].split('-')[0]
+        
+        obj['name'] = name
+        itemsdata.push(obj)
+    }
+
+    return itemsdata
+}
+
+
+///////////////////////////////////////
+
 async function getDesigns(search){
 
 const designs = await getDesign(search)
 
 return designs
 }
+
+
+
+/////////////////////////////////////////
 
 
 
@@ -333,6 +611,7 @@ return productitems;
 async function getAvailable(prodname,reffer){
 
 const items = await getProducts(prodname);
+console.log(items)
 const avModel = await geteachItem(items,reffer);
 return avModel;
 }
