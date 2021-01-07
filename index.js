@@ -34,25 +34,55 @@ client.on('message' , (message)=>{
             
             getAvailable(prodname,reffer).then((data) => {
             
-            const exampleEmbed = new Discord.MessageEmbed()
-            exampleEmbed.setTitle('Available Models for '+prodname+' ('+data.length+')')
-            exampleEmbed.setColor('#3c00ff')   
-                        if (data.length > 0){
-                            for (i=0; i<data.length; i++){
-                                exampleEmbed.addFields(     
-                                    { name: '\u200B', value: "```📍"+data[i]+"```"},
-                                )
-                            }
-                        }else{
-                                exampleEmbed.addFields(     
-                                    { name: '\u200B', value: "No data available \n please double check the product name"},
-                                )
-                        }
-                        
 
-            exampleEmbed.setTimestamp()
-            exampleEmbed.setFooter('-Paul🤖');
-            message.channel.send(exampleEmbed);
+                const exampleEmbed = new Discord.MessageEmbed()
+                exampleEmbed.setTitle(prodname)
+                exampleEmbed.setColor('#3c00ff')   
+                            if (Object.keys(data).length > 0){
+    
+                                // https://cf.shopee.ph/file
+    
+                                    const imgURL = "https://cf.shopee.ph/file/"+data['photourl'][0]
+                                    
+                                    const originalprice = data['price']/100000;
+                                    const redjprice = originalprice + 60;
+                               
+                                  
+    
+                                    for(var k = 0; k < data['photourl'].length; k++){
+                                        exampleEmbed.addFields(     
+                                            { name: '\u200B', value: "https://cf.shopee.ph/file/"+data['photourl'][k]},
+                                        )
+    
+                                    }
+                                    exampleEmbed.addFields(     
+                                        { name: 'Original Price', value: originalprice },
+                                    )
+                                    exampleEmbed.addFields(     
+                                        { name: '\u200B', value: prodname+' 💸'+redjprice},
+                                    )
+                                   
+     
+                                   
+                                    exampleEmbed.setThumbnail(imgURL)
+                                  
+                                        for(var l = 0; l < data['availables'].length; l++){
+                                            exampleEmbed.addFields(     
+                                                { name: '\u200B', value: "📍"+data['availables'][l]},
+                                            )
+                                        }
+                        
+                                
+                            }else{
+                                    exampleEmbed.addFields(     
+                                        { name: '\u200B', value: "No data available \n please double check the product name"},
+                                    )
+                            }
+                            
+    
+                exampleEmbed.setTimestamp()
+                exampleEmbed.setFooter('-Paul🤖');
+                message.channel.send(exampleEmbed);
 
             })
         }else if(CMD_NAME === 'help'){
@@ -71,6 +101,7 @@ client.on('message' , (message)=>{
             const prodname = splithis.split('$')[0];           
             
             getAvailable(prodname,reffer).then((data) => {
+                
             
             const exampleEmbed = new Discord.MessageEmbed()
             exampleEmbed.setTitle('Available Models for '+prodname+' ('+data.length+')')
@@ -675,8 +706,20 @@ async function getAvailable(prodname,reffer){
 
 const items = await getProducts(prodname);
 
+const itemdata = await getPhotoUrl(prodname)
+
 const avModel = await geteachItem(items,reffer);
-return avModel;
+var itemsobj = {}
+
+const photourl = itemdata['images']
+const price = itemdata['price']
+
+itemsobj['availables'] = avModel
+itemsobj['photourl'] = photourl
+itemsobj['price'] = price
+
+
+return itemsobj;
 }
 
 
@@ -688,6 +731,7 @@ for (var p=0; p< items.length; p++) {
 var itemids = items[p]['itemid'];
 const rawmodels = await getmodels(itemids,reffer);
 const brandname = await getBrandName(itemids,reffer); 
+
 
             var names = [];  
             var colors = [];  
