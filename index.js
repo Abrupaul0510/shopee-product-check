@@ -11,7 +11,7 @@ const client = new Client();
 const PREFIX = "!";
 
 client.on('ready', ()=>{
-    console.log('Successully Paul');
+    console.log('Successullsds');
     console.log("Servers Connected:")
     client.guilds.cache.forEach((guild) => {
         console.log(" - " + guild.name)
@@ -130,8 +130,63 @@ client.on('message' , (message)=>{
 
         }else if(CMD_NAME === 'latest'){
            const limit = args.join(' ');
-           getLatest(limit).then(data => {
-               console.log(data)
+           getLatest(limit).then((data) => {
+
+            for (i=0; i<data.length; i++){
+            const exampleEmbed = new Discord.MessageEmbed()
+            exampleEmbed.setTitle(data[i]['pname'])
+            exampleEmbed.setColor('#3c00ff')   
+                        if (data.length > 0){
+
+                            // https://cf.shopee.ph/file
+
+                                const imgURL = "https://cf.shopee.ph/file/"+data[i]['photourl'][0]
+                                
+                                const originalprice = data[i]['price']/100000;
+                                const redjprice = originalprice + 60;
+                           
+                              
+
+                                for(var k = 0; k < data[i]['photourl'].length; k++){
+                                    exampleEmbed.addFields(     
+                                        { name: '\u200B', value: "https://cf.shopee.ph/file/"+data[i]['photourl'][k]},
+                                    )
+
+                                }
+                                exampleEmbed.addFields(     
+                                    { name: 'Original Price', value: originalprice },
+                                )
+                                exampleEmbed.addFields(     
+                                    { name: '\u200B', value: data[i]['pname']+' 💸'+redjprice},
+                                )
+                                
+
+ 
+                               
+                                exampleEmbed.setThumbnail(imgURL)
+                                // if(data[i]['availables'].length === 0){
+                                //     exampleEmbed.addFields(     
+                                //         { name: '\u200B', value: "No model availables"},
+                                //     )
+                                // }else{
+                                    for(var l = 0; l < data[i]['availables'].length; l++){
+                                        exampleEmbed.addFields(     
+                                            { name: '\u200B', value: "📍"+data[i]['availables'][l]},
+                                        )
+                                    }
+                                // }
+                            
+                        }else{
+                                exampleEmbed.addFields(     
+                                    { name: '\u200B', value: "No data available \n please double check the product name"},
+                                )
+                        }
+                        
+
+            exampleEmbed.setTimestamp()
+            exampleEmbed.setFooter('-Paul🤖');
+            message.channel.send(exampleEmbed);
+            }
 
             })
             
@@ -146,7 +201,7 @@ client.on('message' , (message)=>{
 
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.token);
 
 
 
@@ -208,12 +263,16 @@ async function getPhotos(uniqueitems){
     for(var p = 0; p < uniqueitems.length; p++){
         var obj2 = {}
         const searchitems =  uniqueitems[p]['name']
-        const photourl = await getPhotoUrl(searchitems)
+        const itemdata = await getPhotoUrl(searchitems)
         const availables = await getAllAvailable(searchitems)
+
+        const photourl = itemdata['images']
+        const price = itemdata['price']
 
         obj2['pname'] = searchitems
         obj2['photourl'] = photourl
         obj2['availables'] = availables
+        obj2['price'] = price
         arrdata.push(obj2)
 
     }
@@ -350,12 +409,12 @@ async function getPhotoUrl(searchitems){
 
     const itemid = item[0].itemid
 
-    const photos = await getPhotoImages(itemid)
+    const itemdata = await getPhotoImages(itemid)
 
 
     
 
-    return photos
+    return itemdata
 
 
 }
@@ -385,11 +444,12 @@ async function getPhotoImages(itemid){
     const data = await response.json()
 
     const dataitem = data.item
+    var fromItem = {}
+    fromItem['images'] = dataitem.images
+    fromItem['price'] = dataitem.price
 
-    const images = dataitem.images
 
-
-    return images
+    return fromItem
 
 }
 
@@ -437,6 +497,7 @@ async function getLatestItems(limit){
 
     const data = await response.json()
     const items = data.items
+    
     var itemsdata = []
 
     for (var i = 0; i < items.length; i++){
@@ -444,7 +505,9 @@ async function getLatestItems(limit){
 
         const name = items[i]['name'].split('-')[0]
         
+        
         obj['name'] = name
+        
         itemsdata.push(obj)
     }
 
@@ -577,7 +640,7 @@ async function getDesign(search){
 
 
 async function getProducts(searchvalue){
-console.log(searchvalue)
+
 const response = await fetch("https://shopee.ph/api/v2/search_items/?by=relevancy&keyword="+searchvalue+"&limit=50&match_id=23393629&newest=0&order=desc&page_type=shop&version=2", {
 "credentials": "include",
 "headers": {
@@ -611,7 +674,7 @@ return productitems;
 async function getAvailable(prodname,reffer){
 
 const items = await getProducts(prodname);
-console.log(items)
+
 const avModel = await geteachItem(items,reffer);
 return avModel;
 }
