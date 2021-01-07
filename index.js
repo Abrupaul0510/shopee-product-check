@@ -68,7 +68,7 @@ client.on('message' , (message)=>{
                                   
                                         for(var l = 0; l < data['availables'].length; l++){
                                             exampleEmbed.addFields(     
-                                                { name: '\u200B', value: "📍"+data['availables'][l]},
+                                                { name: '\u200B', value: data['availables'][l]},
                                             )
                                         }
                         
